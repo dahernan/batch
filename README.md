@@ -2,7 +2,7 @@
 
 Usage:
 
-Please do copy & paste the code, don't create more dependencies :)
+Please do copy & paste the code or [drop it](https://github.com/matryer/drop), don't create more dependencies :)
 
 ```
 ctx, cancel := context.WithCancel(context.Background())
