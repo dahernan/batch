@@ -16,9 +16,11 @@ type Item struct {
 func TestBatch(t *testing.T) {
 	is := is.New(t)
 
-	ctx := context.Background()
-	b := Batcher(ctx, 3, 0, func(ctx context.Context, items []interface{}) {
+	ctx, cancel := context.WithCancel(context.Background())
+	batches := 0
+	b, doneCh := Batcher(ctx, 3, 0, func(ctx context.Context, items []interface{}) {
 		fmt.Printf("Some batch %+v\n", items)
+		batches++
 	})
 
 	b <- Item{"one"}
@@ -29,15 +31,19 @@ func TestBatch(t *testing.T) {
 	b <- Item{"five"}
 	b <- Item{"six"}
 
-	is.True(false)
+	cancel()
+	<-doneCh
+	is.Equal(batches, 2)
 }
 
 func TestBatchFlush(t *testing.T) {
 	is := is.New(t)
 
-	ctx := context.Background()
-	b := Batcher(ctx, 3, 2*time.Second, func(ctx context.Context, items []interface{}) {
+	ctx, cancel := context.WithCancel(context.Background())
+	batches := 0
+	b, doneCh := Batcher(ctx, 3, 2*time.Second, func(ctx context.Context, items []interface{}) {
 		fmt.Printf("Some batch flush %+v\n", items)
+		batches++
 	})
 
 	b <- Item{"one"}
@@ -50,5 +56,8 @@ func TestBatchFlush(t *testing.T) {
 	b <- Item{"five"}
 	b <- Item{"six"}
 
-	is.True(false)
+	cancel()
+	<-doneCh
+	is.Equal(batches, 3)
+
 }

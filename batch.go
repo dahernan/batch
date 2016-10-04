@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func Batcher(ctx context.Context, batchSize int, flushInterval time.Duration, fn func(ctx context.Context, items []interface{})) chan<- interface{} {
+func Batcher(ctx context.Context, batchSize int, flushInterval time.Duration, fn func(ctx context.Context, items []interface{})) (chan<- interface{}, chan struct{}) {
 	var (
 		tickCh    <-chan time.Time
 		ticker    *time.Ticker
@@ -13,9 +13,11 @@ func Batcher(ctx context.Context, batchSize int, flushInterval time.Duration, fn
 
 		buffer []interface{}
 		sendCh chan interface{}
+		doneCh chan struct{}
 	)
 	buffer = make([]interface{}, 0, batchSize)
 	sendCh = make(chan interface{})
+	doneCh = make(chan struct{})
 
 	if flushInterval != 0 {
 		ticker = time.NewTicker(flushInterval)
@@ -45,9 +47,10 @@ func Batcher(ctx context.Context, batchSize int, flushInterval time.Duration, fn
 					fn(ctx, buffer)
 					buffer = nil
 				}
+				close(doneCh)
 				return
 			}
 		}
 	}()
-	return sendCh
+	return sendCh, doneCh
 }
