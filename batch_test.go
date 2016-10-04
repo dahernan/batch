@@ -12,7 +12,7 @@ type Item struct {
 	field string
 }
 
-func Batcher(ctx context.Context, batchSize int, doFn func(items []interface{})) chan interface{} {
+func Batcher(ctx context.Context, batchSize int, doFn func(ctx context.Context, items []interface{})) chan interface{} {
 	buffer := make([]interface{}, 0, batchSize)
 	sendCh := make(chan interface{})
 
@@ -22,11 +22,12 @@ func Batcher(ctx context.Context, batchSize int, doFn func(items []interface{}))
 			case item := <-sendCh:
 				buffer = append(buffer, item)
 				if len(buffer) >= batchSize {
-					doFn(buffer)
+					doFn(ctx, buffer)
 					buffer = make([]interface{}, 0, batchSize)
 				}
 			case <-ctx.Done():
-				doFn(buffer)
+				doFn(ctx, buffer)
+				buffer = nil
 				return
 			}
 		}
@@ -37,7 +38,8 @@ func Batcher(ctx context.Context, batchSize int, doFn func(items []interface{}))
 func TestBatch(t *testing.T) {
 	is := is.New(t)
 
-	b := Batcher(context.Background(), 3, func(items []interface{}) {
+	ctx := context.Background()
+	b := Batcher(ctx, 3, func(ctx context.Context, items []interface{}) {
 		fmt.Printf("Some batch %+v\n", items)
 	})
 
