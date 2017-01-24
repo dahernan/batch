@@ -27,7 +27,15 @@ func Batcher(ctx context.Context, batchSize int, flushInterval time.Duration, fn
 	go func() {
 		for {
 			select {
-			case item := <-sendCh:
+			case item, ok := <-sendCh:
+				if !ok {
+					if len(buffer) > 0 {
+						fn(ctx, buffer)
+						buffer = nil
+					}
+					close(doneCh)
+					return
+				}
 				buffer = append(buffer, item)
 				if len(buffer) >= batchSize {
 					fn(ctx, buffer)

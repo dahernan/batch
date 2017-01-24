@@ -36,6 +36,31 @@ func TestBatch(t *testing.T) {
 	is.Equal(batches, 2)
 }
 
+func TestBatchDoneCh(t *testing.T) {
+	is := is.New(t)
+
+	ctx := context.Background()
+	batches := 0
+	i := 0
+	b, doneCh := Batcher(ctx, 3, 0, func(ctx context.Context, items []interface{}) {
+		fmt.Printf("Some batch with close %+v\n", items)
+		i = i + len(items)
+		batches++
+	})
+
+	b <- Item{"one"}
+	b <- Item{"two"}
+	b <- Item{"three"}
+
+	b <- Item{"four"}
+	b <- Item{"five"}
+
+	close(b)
+	<-doneCh
+	is.Equal(batches, 2)
+	is.Equal(i, 5)
+}
+
 func TestBatchFlush(t *testing.T) {
 	is := is.New(t)
 
